@@ -1,0 +1,129 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# ==========================================
+# إنشاء بيانات الطقس
+# ==========================================
+
+np.random.seed(7)
+
+dates = pd.date_range(
+    start='2021-01-01',
+    end='2023-12-31',
+    freq='D'
+)
+
+day_of_year = dates.dayofyear
+n_days = len(dates)
+
+# موسمية + اتجاه احترار + ضجيج
+seasonal_pattern = 15 + 12 * np.sin(
+    2 * np.pi * (day_of_year - 80) / 365
+)
+
+warming_trend = np.linspace(
+    0,
+    1.5,
+    n_days
+)
+
+noise = np.random.normal(
+    0,
+    2,
+    n_days
+)
+
+temperature = (
+    seasonal_pattern
+    + warming_trend
+    + noise
+)
+
+weather = pd.DataFrame({
+    'date': dates,
+    'temperature': temperature
+})
+
+# ==========================================
+# الخطوة 2
+# ==========================================
+
+# 1) تحويل التاريخ وتعيينه كـ Index
+
+weather['date'] = pd.to_datetime(weather['date'])
+weather = weather.set_index('date')
+
+# 2) رسم درجات الحرارة اليومية
+
+plt.figure(figsize=(14,5))
+
+plt.plot(
+    weather.index,
+    weather['temperature'],
+    color='steelblue'
+)
+
+plt.title('Daily Temperature (2021-2023)')
+plt.xlabel('Date')
+plt.ylabel('Temperature (°C)')
+plt.grid(True)
+
+plt.show()
+
+# 3) استخراج الشهر
+
+weather['month'] = weather.index.month
+
+# ==========================================
+# الخطوة 3
+# ==========================================
+
+# 1) متوسط شهري
+
+monthly_weather = (
+    weather[['temperature']]
+    .resample('M')
+    .mean()
+)
+
+plt.figure(figsize=(14,5))
+
+plt.plot(
+    monthly_weather.index,
+    monthly_weather['temperature'],
+    color='red',
+    linewidth=2
+)
+
+plt.title('Monthly Average Temperature')
+plt.xlabel('Date')
+plt.ylabel('Temperature (°C)')
+plt.grid(True)
+
+plt.show()
+
+# ==========================================
+# GroupBy حسب الشهر
+# ==========================================
+
+monthly_avg = (
+    weather.groupby('month')['temperature']
+    .mean()
+)
+
+print("Average Temperature By Month:")
+print(monthly_avg)
+
+warmest_month = monthly_avg.idxmax()
+coldest_month = monthly_avg.idxmin()
+
+print("\nWarmest Month:", warmest_month)
+print("Coldest Month:", coldest_month)
+
+# ==========================================
+# متوسط كل سنة
+# ==========================================
+
+yearly_avg = (
+    weather
